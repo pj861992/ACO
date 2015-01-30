@@ -4,11 +4,12 @@ import threading
 from time import sleep
 import matplotlib.pyplot as plt
 import numpy as numpy
+import copy
 
 #nodeCount = 100
 #degree = 30
 #maxWeight = 100
-noOfGenerations = 200
+noOfGenerations = 20
 antsPerGeneration = 10
 source = 0
 target = 0
@@ -21,6 +22,7 @@ antCount = 0
 #alpha = 0 implies complete exploration
 alpha = 1
 pathsGenerated = {}
+antLock = threading.Lock()
 
 
 class Ant():
@@ -41,14 +43,16 @@ def pheromoneEvaporation(G):
 			G.pheromone[i][j] = (G.pheromone[i][j]*0.3)
 
 
-def pickNextNode(G, currentNode):
+def pickNextNode(G, currentNode, localPherTable):
 	sum = 0
 	weights = {}
 	actualWeights = {}
+	antLock.acquire()
 	neighbours = G[currentNode]
+	antLock.release()
 	for node in neighbours:
-		x = G.pheromone[currentNode][node.nodeNumber]
-		#x = (1-alpha)*1 + (alpha*ph)
+		ph = localPherTable[currentNode][node.nodeNumber]
+		x = (1-alpha)*1 + (alpha*ph)
 		#x = ph
 		sum = sum + x
 		weights[node.nodeNumber] = x
@@ -63,27 +67,32 @@ def pickNextNode(G, currentNode):
 	#print ("Returning: " + str(neighbours[-1].nodeNumber))
 	return neighbours[-1].nodeNumber, neighbours[-1].weight
 
-def localDepositPheromone(G, i, j, newPheromone):
+def localDepositPheromone(localPherTable, i, j, newPheromone):
 	#G.pheromone[i][j] = G.pheromone[i][j] + newPheromone
-	G.localUpdatePheromone(i, j, newPheromone)
+	#G.localUpdatePheromone(i, j, newPheromone)
+	localPherTable[i][j] = localPherTable[i][j] + newPheromone
 
-def globalDepositPheromone(G, i, j, newPheromone):
+def globalDepositPheromone(localPherTable, i, j, newPheromone):
 	#G.pheromone[i][j] = G.pheromone[i][j] + newPheromone
-	G.globalUpdatePheromone(i, j, newPheromone)
+	#G.globalUpdatePheromone(i, j, newPheromone)
+	localPherTable[i][j] = localPherTable[i][j] + newPheromone
 
 def newActiveAnt(G, source, target, count):
 	#print ("Ant " + str(count) +" has been born")
 	ant = Ant()
 	currentNode = source
 	ant.appendToPath(source, 0)
+	localPherTable = copy.deepcopy(G.pheromone)
 
 	while(currentNode != target):
+		antLock.acquire()
 		neighbours = G[currentNode]
-		nextNode, cost = pickNextNode(G, currentNode)
+		antLock.release()
+		nextNode, cost = pickNextNode(G, currentNode, localPherTable)
 		ant.appendToPath(nextNode, cost)
 		stepPheromone = (1.0/(cost))
 		if onlineStepUpdate:
-			localDepositPheromone(G, currentNode, nextNode, stepPheromone)
+			localDepositPheromone(localPherTable, currentNode, nextNode, stepPheromone)
 		#print (str(G.pheromone[currentNode][nextNode]))
 		currentNode = nextNode
 	#print ("Ant has reached here " + str(count))
@@ -94,12 +103,17 @@ def newActiveAnt(G, source, target, count):
 			i = 2
 			pheromone = (1.0/ant.pathCost)
 			while (i < len(ant.pathMem) - 1):
-				globalDepositPheromone(G, currentNode, nextNode, pheromone)
+				globalDepositPheromone(localPherTable, currentNode, nextNode, pheromone)
 				i = i + 1
 				currentNode = nextNode
 				nextNode = ant.pathMem[i]
+
+	#Update the global graph
+	antLock.acquire()
+	G.updatePheromone(localPherTable)
+	antLock.release()
 	print ("Ant "+str(count)+" terminated with cost = " + str(ant.pathCost))
-	pathsGenerated[count/14] = ant.pathCost
+	pathsGenerated[count/antsPerGeneration] = ant.pathCost
 
 def antsGenerationAndActivity(G, s, t):
 	global antCount
@@ -120,8 +134,10 @@ def ACOMetaHeuristic(G, s, t):
 	i = 1
 	while i < noOfGenerations:
 		antsGenerationAndActivity(G, s, t)
-		'''if i%50 == 0:
-			pheromoneEvaporation(G)'''
+		if i%5 == 0:
+			antLock.acquire()
+			pheromoneEvaporation(G)
+			antLock.release()
 		#daemonActions(G)
 		sleep(0.5)
 		i = i + 1
@@ -129,11 +145,15 @@ def ACOMetaHeuristic(G, s, t):
 
 
 def main():
-	G = graph(nodeCount, degree)
+	'''G = graph(nodeCount, degree)
 	G.populateGraph()
 	source = random.randint(0, nodeCount - 1)
 	target = random.randint(0, nodeCount - 1)
 	G.connect(source, target)
+
+	pickle.dump( G, open( "save.p", "wb" ) )'''
+	#H = graph(nodeCount, degree)
+	G = pickle.load( open( "save.p", "r" ) )
 	#G.initPheromone(1)
 	spath, dadHeap = maxCapacityHeap(G, source, target)
 	print ("Shortest path = " + str(spath[target]))
@@ -158,6 +178,7 @@ def main():
 
 	plt.plot(pathsGenerated.keys(), error, 'bo', linewidth = 0)
 	plt.show()
+	#pickle.dump( H, open( "save.p", "wb" ) )
 
 
 

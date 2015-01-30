@@ -1,6 +1,6 @@
 import random
 from time import time
-import pickle
+import cPickle as pickle
 import pprint
 from operator import itemgetter, attrgetter
 
@@ -59,6 +59,12 @@ class graph:
 
     def globalUpdatePheromone(self, i, j, newPheromone):
         self.pheromone[i][j] = (self.pheromone[i][j]) + newPheromone
+
+    def updatePheromone(self, localPherTable):
+        for i in range (nodeCount):
+            for j in range (nodeCount):
+                self.pheromone[i][j] = (self.pheromone[i][j] + localPherTable[i][j])/2
+
 
     def printGraph(self, i):
         minWeight = 11111110
