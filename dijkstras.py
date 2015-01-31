@@ -1,11 +1,11 @@
 import random
 from time import time
-import cPickle as pickle
+import pickle
 import pprint
 from operator import itemgetter, attrgetter
 
-nodeCount = 10
-degree = 5
+nodeCount = 200
+degree = 30
 maxWeight= 100
 #ld = local decay coefficient
 ld = 0.5

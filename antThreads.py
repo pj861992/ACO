@@ -5,12 +5,13 @@ from time import sleep
 import matplotlib.pyplot as plt
 import numpy as numpy
 import copy
+from dijkstras import graph
 
 #nodeCount = 100
 #degree = 30
 #maxWeight = 100
-noOfGenerations = 20
-antsPerGeneration = 10
+noOfGenerations = 2000
+antsPerGeneration = 5
 source = 0
 target = 0
 onlineStepUpdate = 1
@@ -143,6 +144,13 @@ def ACOMetaHeuristic(G, s, t):
 		i = i + 1
 	print ("All ants generated!")
 
+def printGraph(H, i):
+	minWeight = 11111110
+	for i in range (0, H.nodeCount):
+		print ("Node number: "+str(i) +" neighbours:")
+		for node in H.adjacencyList[i]:
+			print ( str(node.nodeNumber) + " - " + str(node.weight))
+
 
 def main():
 	'''G = graph(nodeCount, degree)
@@ -152,8 +160,13 @@ def main():
 	G.connect(source, target)
 
 	pickle.dump( G, open( "save.p", "wb" ) )'''
-	#H = graph(nodeCount, degree)
+	#G = graph(nodeCount, degree)
+	#G.populateGraph()
 	G = pickle.load( open( "save.p", "r" ) )
+	source = pickle.load( open( "source.p", "r" ) )
+	target = pickle.load( open( "target.p", "r" ) )
+
+	alpha = input("Enter a value for alpha: ")
 	#G.initPheromone(1)
 	spath, dadHeap = maxCapacityHeap(G, source, target)
 	print ("Shortest path = " + str(spath[target]))
