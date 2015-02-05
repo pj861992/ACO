@@ -10,8 +10,8 @@ from dijkstras import graph
 #nodeCount = 100
 #degree = 30
 #maxWeight = 100
-noOfGenerations = 2000
-antsPerGeneration = 5
+noOfGenerations = 500
+antsPerGeneration = 2
 source = 0
 target = 0
 onlineStepUpdate = 1
@@ -113,8 +113,11 @@ def newActiveAnt(G, source, target, count):
 	antLock.acquire()
 	G.updatePheromone(localPherTable)
 	antLock.release()
-	print ("Ant "+str(count)+" terminated with cost = " + str(ant.pathCost))
-	pathsGenerated[count/antsPerGeneration] = ant.pathCost
+	#print ("Ant "+str(count)+" terminated with cost = " + str(ant.pathCost))
+	antLock.acquire()
+	pathsGenerated[count] = ant.pathCost
+	antLock.release()
+	#print ("Ant "+str(count)+" terminated with cost = ")
 
 def antsGenerationAndActivity(G, s, t):
 	global antCount
@@ -153,6 +156,8 @@ def printGraph(H, i):
 
 
 def main():
+	global alpha
+	alpha = input("Enter a value for alpha: ")
 	'''G = graph(nodeCount, degree)
 	G.populateGraph()
 	source = random.randint(0, nodeCount - 1)
@@ -162,36 +167,52 @@ def main():
 	pickle.dump( G, open( "save.p", "wb" ) )'''
 	#G = graph(nodeCount, degree)
 	#G.populateGraph()
-	G = pickle.load( open( "save.p", "r" ) )
-	source = pickle.load( open( "source.p", "r" ) )
-	target = pickle.load( open( "target.p", "r" ) )
+	for ii in range (0,5):
+		G = pickle.load( open( "save.p", "r" ) )
+		source = pickle.load( open( "source.p", "r" ) )
+		target = pickle.load( open( "target.p", "r" ) )
 
-	alpha = input("Enter a value for alpha: ")
-	#G.initPheromone(1)
-	spath, dadHeap = maxCapacityHeap(G, source, target)
-	print ("Shortest path = " + str(spath[target]))
-	#newActiveAnt(G, source, target)
-	ACOMetaHeuristic(G, source, target)
-	sleep(10)
-	#sleep(30)
-	shortest = spath[target]
-	error = pathsGenerated.values()
-	for value in error:
-		value = value - shortest
-	'''error = []
-	antNumber = []
-	ii = 0
-	for path in pathsGenerated:
-		x = path - shortest
-		error.append(x)
-		antNumber.append(ii)
-		ii = ii + 1
-	plt.plot(antNumber, error)
-	plt.show()'''
+		
+		#G.initPheromone(1)
+		spath, dadHeap = maxCapacityHeap(G, source, target)
+		print ("Shortest path = " + str(spath[target]))
+		#newActiveAnt(G, source, target)
+		ACOMetaHeuristic(G, source, target)
+		sleep(10)
+		#sleep(30)
+		
+		shortest = spath[target]
+		error = pathsGenerated.values()
+		for value in error:
+			value = value - shortest
+		'''error = []
+		for value in pathsGenerated.values():
+			error.append(value - shortest)'''
 
-	plt.plot(pathsGenerated.keys(), error, 'bo', linewidth = 0)
-	plt.show()
-	#pickle.dump( H, open( "save.p", "wb" ) )
+		'''for i, v in enumerate(error):
+			print ("ant: "+str(i)+" cost: "+str(v))
+		error = []
+		antNumber = []
+		ii = 0
+		for path in pathsGenerated:
+			x = path - shortest
+			error.append(x)
+			antNumber.append(ii)
+			ii = ii + 1
+		plt.plot(antNumber, error)
+		plt.show()'''
+		
+		fig, ax = plt.subplots()
+		ax.plot(pathsGenerated.keys(), error, 'bo', linewidth = 0, label = "alpha = "+ str(alpha))
+		legend = ax.legend(shadow=True)
+		for label in legend.get_texts():
+			label.set_fontsize('large')
+		for label in legend.get_lines():
+			label.set_linewidth(1.5) 
+		#plt.show()
+		fname = "C:\Content\AI\ACO\graphs\\alpha" + str(alpha) +"graph"+str(ii)+".png"
+		plt.savefig(fname)
+		#pickle.dump( H, open( "save.p", "wb" ) )
 
 
 
